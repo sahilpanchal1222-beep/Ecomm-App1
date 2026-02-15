@@ -1,20 +1,34 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaLibSql } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import path from 'path';
 import { config } from 'dotenv';
 
 config({ path: path.resolve(process.cwd(), ".env") });
 
-const libsql = createClient({
-  url: process.env.DATABASE_URL || "file:./dev.db",
-});
+const dbType = process.env.DATABASE_TYPE || "sqlite";
+const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
 
-const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL || "file:./dev.db" });
+let prismaClientSingleton: () => PrismaClient;
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({ adapter });
-};
+if (dbType === "postgresql") {
+  const pool = new Pool({ connectionString: dbUrl });
+  const adapter = new PrismaPg(pool);
+
+  prismaClientSingleton = () => {
+    return new PrismaClient({ adapter });
+  };
+} else {
+  const { PrismaLibSql } = require('@prisma/adapter-libsql');
+  const { createClient } = require('@libsql/client');
+
+  const libsql = createClient({ url: dbUrl });
+  const adapter = new PrismaLibSql(libsql);
+
+  prismaClientSingleton = () => {
+    return new PrismaClient({ adapter });
+  };
+}
 
 declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;

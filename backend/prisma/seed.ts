@@ -1,10 +1,33 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import { config } from 'dotenv';
 
-const prisma = new PrismaClient();
+config();
+
+const dbType = process.env.DATABASE_TYPE || "sqlite";
+const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
+
+console.log("DB Type:", dbType);
+console.log("DB URL:", dbUrl);
+
+let prisma: PrismaClient;
+
+if (dbType === "postgresql") {
+  const pool = new Pool({ connectionString: dbUrl });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+} else {
+  const { PrismaLibSql } = await import('@prisma/adapter-libsql');
+  const { createClient } = await import('@libsql/client');
+  const libsql = createClient({ url: dbUrl });
+  const adapter = new PrismaLibSql({ url: dbUrl } as any);
+  prisma = new PrismaClient({ adapter });
+}
 
 async function main() {
   console.log('Seeding database...');
-  console.log('Database Type:', process.env.DATABASE_TYPE || 'postgresql');
+  console.log('Database Type:', dbType);
 
   try {
     const products = [
