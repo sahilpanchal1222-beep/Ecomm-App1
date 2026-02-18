@@ -6,7 +6,7 @@ on:
     branches:["main"]
   # if any pull request on main branch
   pull_request:
-     branches
+     branches:
 
 
 jobs:
@@ -30,11 +30,11 @@ jobs:
 
       # install nodejs
       - name : Setup Node.js
-        uses :              # github action to install nodejs
+        uses :  action/setup            # github action to install nodejs
         with:
           node-version : {{matrix.node-version}} # refernce the node-version set above
           cache : 'npm'          # command to install the node packages
-          cache-dependency-path :           # path to the package file
+          cache-dependency-path : './frontend/package-lock.json'          # path to the package file
 
 
       # install dependencies
